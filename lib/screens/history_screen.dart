@@ -20,10 +20,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDeletedTodos();
+    _syncAndLoadDeletedTodos();
   }
 
-  void _loadDeletedTodos() {
+  Future<void> _syncAndLoadDeletedTodos() async {
+    // Sync with backend API first
+    await _storageService.syncDeletedTodos();
+    
     setState(() {
       _deletedTodos = _storageService.loadDeletedTodos();
       // Sort by deletion date (newest first)
@@ -60,7 +63,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear History'),
-        content: const Text('Are you sure you want to clear all deleted tasks?'),
+        content: const Text(
+          'Are you sure you want to clear all deleted tasks?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -80,7 +85,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     if (confirmed == true && mounted) {
       await _storageService.clearDeletedTodos();
-      _loadDeletedTodos();
+      _syncAndLoadDeletedTodos();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -98,6 +103,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
       appBar: AppBar(
         title: const Text('Deleted Tasks'),
         actions: [
+          if (_deletedTodos.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: _clearHistory,
+              tooltip: 'Clear History',
+            ),
           // Filter button
           PopupMenuButton<HistoryFilter>(
             icon: const Icon(Icons.filter_list),
@@ -129,7 +140,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 value: HistoryFilter.pending,
                 child: Row(
                   children: [
-                    Icon(Icons.radio_button_unchecked, size: 20, color: Colors.orange),
+                    Icon(
+                      Icons.radio_button_unchecked,
+                      size: 20,
+                      color: Colors.orange,
+                    ),
                     SizedBox(width: 8),
                     Text('Pending'),
                   ],
@@ -138,12 +153,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
           ),
           // Clear history button - only show when there are deleted todos
-          if (_deletedTodos.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_sweep),
-              onPressed: _clearHistory,
-              tooltip: 'Clear History',
-            ),
         ],
       ),
       body: _filteredTodos.isEmpty
@@ -151,11 +160,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.delete_sweep,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.delete_sweep, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     _getEmptyMessage(),
@@ -198,9 +203,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildDeletedTodoTile(DeletedTodo todo) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ListTile(
         title: Text(
           todo.title,
@@ -347,10 +350,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(height: 2),
                 Text(

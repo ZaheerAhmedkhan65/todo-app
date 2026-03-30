@@ -30,7 +30,18 @@ class _TodoScreenState extends State<TodoScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    // Sync with backend API first
+    await _storageService.syncTodos();
+    await _storageService.syncDeletedTodos();
+    
+    // Load todos from cache
     _loadTodos();
+    
+    // Schedule notifications
     _scheduleAllNotifications();
   }
 

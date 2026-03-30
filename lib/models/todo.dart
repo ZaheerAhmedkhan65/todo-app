@@ -2,14 +2,16 @@ import 'package:hive/hive.dart';
 
 part 'todo.g.dart';
 
-/// Priority levels for todo tasks
+@HiveType(typeId: 0)
 enum TaskPriority {
+  @HiveField(0)
   low,
+  @HiveField(1)
   medium,
+  @HiveField(2)
   high,
 }
 
-/// Extension to get display color for priority
 extension TaskPriorityExtension on TaskPriority {
   String get name {
     switch (this) {
@@ -40,12 +42,20 @@ class Todo extends HiveObject {
   @HiveField(4)
   DateTime? scheduledTime;
 
+  @HiveField(5)
+  int? id;
+
+  @HiveField(6)
+  DateTime? completedAt;
+
   Todo({
     required this.title,
     this.isCompleted = false,
     this.description,
     TaskPriority? priority,
     this.scheduledTime,
+    this.id,
+    this.completedAt,
   }) : priorityIndex = priority?.index;
 
   /// Get the priority as TaskPriority enum
@@ -63,13 +73,80 @@ class Todo extends HiveObject {
   int get priorityColor {
     switch (priority) {
       case TaskPriority.high:
-        return 0xFFE53935; // Red
+        return 0xFFE53935;
       case TaskPriority.medium:
-        return 0xFFFB8C00; // Orange
+        return 0xFFFB8C00;
       case TaskPriority.low:
-        return 0xFF43A047; // Green
+        return 0xFF43A047;
       default:
-        return 0xFF757575; // Grey
+        return 0xFF757575;
     }
+  }
+
+  /// Create a copy of this todo with updated fields
+  Todo copyWith({
+    String? title,
+    bool? isCompleted,
+    String? description,
+    TaskPriority? priority,
+    DateTime? scheduledTime,
+    int? id,
+    DateTime? completedAt,
+  }) {
+    return Todo(
+      title: title ?? this.title,
+      isCompleted: isCompleted ?? this.isCompleted,
+      description: description ?? this.description,
+      priority: priority ?? this.priority,
+      scheduledTime: scheduledTime ?? this.scheduledTime,
+      id: id ?? this.id,
+      completedAt: completedAt ?? this.completedAt,
+    );
+  }
+
+  /// Convert to JSON for API
+  Map<String, dynamic> toJson() {
+    return {
+      if (id != null) 'id': id,
+      'title': title,
+      'description': description,
+      'priority': priority?.name.toLowerCase() ?? 'medium',
+      'isCompleted': isCompleted,
+      if (scheduledTime != null)
+        'scheduledTime': scheduledTime!.toIso8601String(),
+    };
+  }
+
+  /// Create from JSON
+  factory Todo.fromJson(Map<String, dynamic> json) {
+    TaskPriority? priority;
+    final priorityStr = json['priority'] as String?;
+    if (priorityStr != null) {
+      switch (priorityStr.toLowerCase()) {
+        case 'low':
+          priority = TaskPriority.low;
+          break;
+        case 'medium':
+          priority = TaskPriority.medium;
+          break;
+        case 'high':
+          priority = TaskPriority.high;
+          break;
+      }
+    }
+
+    return Todo(
+      title: json['title'] ?? '',
+      description: json['description'],
+      priority: priority,
+      scheduledTime: json['scheduledTime'] != null
+          ? DateTime.parse(json['scheduledTime'])
+          : null,
+      isCompleted: json['isCompleted'] ?? false,
+      id: json['id'],
+      completedAt: json['completedAt'] != null
+          ? DateTime.parse(json['completedAt'])
+          : null,
+    );
   }
 }
