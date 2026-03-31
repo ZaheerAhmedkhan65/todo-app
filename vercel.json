@@ -1,14 +1,15 @@
 {
   "version": 2,
-  "projects": [
+  "builds": [
     {
-      "path": "backend",
-      "settings": {
-        "framework": null,
-        "buildCommand": null,
-        "outputDirectory": "public",
-        "installCommand": "cd backend && npm install"
-      }
+      "src": "backend/api/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "backend/api/index.js"
     }
   ],
   "functions": {
@@ -16,10 +17,7 @@
       "maxDuration": 30
     }
   },
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "backend/api/index.js"
-    }
-  ]
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
