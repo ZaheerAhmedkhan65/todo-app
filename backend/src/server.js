@@ -106,7 +106,6 @@ process.on('SIGTERM', () => {
 
 module.exports = app;
 
-// Start server if this file is run directly
 if (require.main === module) {
   startServer();
 }
