@@ -5,6 +5,7 @@ import 'api_service.dart';
 class StorageService {
   // Singleton ApiService to maintain consistent guest ID
   static final ApiService _apiService = ApiService();
+  static bool _isInitialized = false;
 
   // Local cache
   List<Todo> _localTodos = [];
@@ -12,6 +13,14 @@ class StorageService {
 
   /// Get the singleton ApiService instance
   ApiService get apiService => _apiService;
+
+  /// Initialize the API service (call this once at app startup)
+  Future<void> init() async {
+    if (!_isInitialized) {
+      await _apiService.init();
+      _isInitialized = true;
+    }
+  }
 
   /// Sync todos from backend API
   Future<void> syncTodos() async {
@@ -140,6 +149,14 @@ class StorageService {
       }
     }
 
+    // Handle both boolean and integer (0/1) values for isCompleted
+    bool isCompleted = false;
+    if (data['isCompleted'] is bool) {
+      isCompleted = data['isCompleted'];
+    } else if (data['isCompleted'] is int) {
+      isCompleted = data['isCompleted'] == 1;
+    }
+
     return Todo(
       title: data['title'] ?? '',
       description: data['description'],
@@ -147,7 +164,7 @@ class StorageService {
       scheduledTime: data['scheduledTime'] != null 
           ? DateTime.parse(data['scheduledTime']) 
           : null,
-      isCompleted: data['isCompleted'] ?? false,
+      isCompleted: isCompleted,
       id: data['id'],
     );
   }

@@ -1,69 +1,57 @@
-const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
-const { sequelize } = require('../config/database');
+const { db } = require('../config/database');
 
-const User = sequelize.define('User', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  },
-  username: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-    unique: true,
-    validate: {
-      len: [3, 50],
-      isAlphanumeric: true,
-    },
-  },
-  email: {
-    type: DataTypes.STRING(100),
-    allowNull: false,
-    unique: true,
-    validate: {
-      isEmail: true,
-    },
-  },
-  password: {
-    type: DataTypes.STRING(255),
-    allowNull: false,
-  },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
-  },
-  lastLogin: {
-    type: DataTypes.DATE,
-    allowNull: true,
-  },
-}, {
-  tableName: 'users',
-  timestamps: true,
-  hooks: {
-    beforeCreate: async (user) => {
-      if (user.password) {
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(user.password, salt);
-      }
-    },
-    beforeUpdate: async (user) => {
-      if (user.changed('password')) {
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(user.password, salt);
-      }
-    },
-  },
-});
+class User {
+    // Create new user
+    static async create({ username, email, password }) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const [result] = await db.query(
+            'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+            [username, email, hashedPassword]
+        );
+        return { id: result.insertId, username, email };
+    }
 
-// Instance method to check password
-User.prototype.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
+    // Find user by email
+    static async findByEmail(email) {
+        const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+        return rows[0] || null;
+    }
 
-// Static method to find by email
-User.findByEmail = async function(email) {
-  return this.findOne({ where: { email } });
-};
+    // Find user by ID
+    static async findById(id) {
+        const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [id]);
+        return rows[0] || null;
+    }
+
+    // Update user
+    static async update(id, { username, email }) {
+        const fields = [];
+        const values = [];
+        
+        if (username) {
+            fields.push('username = ?');
+            values.push(username);
+        }
+        if (email) {
+            fields.push('email = ?');
+            values.push(email);
+        }
+        
+        if (fields.length === 0) return null;
+        
+        values.push(id);
+        await db.query(
+            `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
+            values
+        );
+        return this.findById(id);
+    }
+
+    // Compare password
+    async comparePassword(password) {
+        return bcrypt.compare(password, this.password);
+    }
+}
 
 module.exports = User;

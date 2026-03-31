@@ -142,7 +142,9 @@ class Todo extends HiveObject {
       scheduledTime: json['scheduledTime'] != null
           ? DateTime.parse(json['scheduledTime'])
           : null,
-      isCompleted: json['isCompleted'] ?? false,
+      isCompleted: json['isCompleted'] is bool 
+          ? json['isCompleted'] 
+          : (json['isCompleted'] == 1 || json['isCompleted'] == true),
       id: json['id'],
       completedAt: json['completedAt'] != null
           ? DateTime.parse(json['completedAt'])

@@ -34,6 +34,9 @@ class _TodoScreenState extends State<TodoScreen> {
   }
 
   Future<void> _initializeApp() async {
+    // Initialize API service (loads persisted guest ID)
+    await _storageService.init();
+    
     // Sync with backend API first
     await _storageService.syncTodos();
     await _storageService.syncDeletedTodos();
